@@ -1,58 +1,38 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <!-- Meta tag modificada com viewport-fit=cover para forçar o preenchimento total no iOS -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Visualizador 360°</title>
     <style>
-        /* CSS Reset fundamental para iOS */
-        html, body {
-            width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
+        body, ::backdrop {
             background: #fff;
-            -webkit-overflow-scrolling: touch;
         }
-
         #fullscreen-button {
             position: absolute;
-            top: 15px;
-            right: 15px;
+            top:  15px;
+            right:  15px;
             background: rgb(10, 182, 212);
-            border: 0;
-            width: 40px;
-            height: 40px;
+            border:  0;
+            width:  40px;
+            height:  40px;
             border-radius: 50%;
             box-sizing: border-box;
-            transition: transform .3s;
-            cursor: pointer;
+            transition:  transform .3s;
+            cursor:  pointer;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            z-index: 999999 !important; /* Valor altíssimo para garantir prioridade no iOS */
         }
         #fullscreen-button:hover {
             transform: scale(1.125);
         }
-        
-        /* Chaves de exibição dos SVGs */
         #fullscreen-button svg:nth-child(2) { 
             display: none;
         }
-        
-        /* Alvos de detecção: modo nativo (:fullscreen) e modo simulado (.ios-fullscreen) */
-        :fullscreen #fullscreen-button svg:nth-child(1),
-        .ios-fullscreen #fullscreen-button svg:nth-child(1) {
+        [fullscreen] #fullscreen-button svg:nth-child(1) {
             display: none;
         }
-        :fullscreen #fullscreen-button svg:nth-child(2),
-        .ios-fullscreen #fullscreen-button svg:nth-child(2) {
+        [fullscreen] #fullscreen-button svg:nth-child(2) {
             display: inline-block;
         }
-
         #loading-spinner {
             position: fixed;
             top: 50%;
@@ -64,7 +44,6 @@
             width: 60px;
             height: 60px;
             animation: spin 1s linear infinite;
-            z-index: 999999;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -72,45 +51,12 @@
         }
         #modal-wrapper {
             display: none;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* --- SUPER CORREÇÃO DE TELA CHEIA PARA IPHONE --- */
-        /* Força a árvore inteira do documento HTML a virar um bloco fixo e imutável */
-        html.ios-fullscreen, 
-        html.ios-fullscreen body {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            overflow: hidden !important;
-        }
-
-        html.ios-fullscreen #modal-wrapper {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            background: #fff !important;
-            z-index: 999998 !important;
         }
     </style>
 </head>
 <body>
 
 <div id="loading-spinner"></div>
-
-<button id="fullscreen-button">
-    <!-- SVG 1: Ícone de Ampliar -->
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
-    <!-- SVG 2: Ícone de Reduzir -->
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"/></svg>
-</button>
 
 <div id="modal-wrapper" class="modal">
     <div class="center">
@@ -177,13 +123,11 @@
             img.onerror = checkAllImagesLoaded;
         });
 
-        const maxLoadTime = 10000;
+        // Timeout para garantir que o loading desapareça mesmo com falhas no carregamento
+        const maxLoadTime = 10000; // 10 segundos
         setTimeout(() => {
-            if(loadingSpinner.style.display !== "none") {
-                loadingSpinner.style.display = "none";
-                modalWrapper.style.display = "block";
-                dispararResize360();
-            }
+            loadingSpinner.style.display = "none";
+            modalWrapper.style.display = "block";
         }, maxLoadTime);
 
         function checkAllImagesLoaded() {
@@ -191,64 +135,7 @@
             if (loadedImages === totalImages) {
                 loadingSpinner.style.display = "none";
                 modalWrapper.style.display = "block";
-                dispararResize360();
             }
-        }
-
-        // --- NOVA MANIPULAÇÃO DO BOTÃO COM SUPORTE CLASSE HTML ---
-        const fullscreenButton = document.getElementById('fullscreen-button');
-
-        fullscreenButton.addEventListener('click', function() {
-            // Detecção robusta de APIs de tela cheia do sistema
-            const nativeSupport = document.fullscreenEnabled || document.webkitFullscreenEnabled || document.mozFullScreenEnabled || document.msFullscreenEnabled;
-            
-            // Forçar iOS (iPhone) a cair direto no simulador CSS independente do que o navegador responder
-            const isIphone = /iPhone|iPod/.test(navigator.userAgent);
-
-            if (nativeSupport && !isIphone) {
-                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                    if (document.documentElement.requestFullscreen) {
-                        document.documentElement.requestFullscreen();
-                    } else if (document.documentElement.webkitRequestFullscreen) {
-                        document.documentElement.webkitRequestFullscreen();
-                    }
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    }
-                }
-            } else {
-                // Fallback definitivo para iOS (iPhone) usando classe na tag HTML principal
-                const htmlEl = document.documentElement;
-                if (htmlEl.classList.contains('ios-fullscreen')) {
-                    htmlEl.classList.remove('ios-fullscreen');
-                } else {
-                    htmlEl.classList.add('ios-fullscreen');
-                }
-                dispararResize360();
-            }
-        });
-
-        function handleFullscreenChange() {
-            const htmlEl = document.documentElement;
-            if (document.fullscreenElement || document.webkitFullscreenElement) {
-                htmlEl.classList.add('ios-fullscreen');
-            } else {
-                htmlEl.classList.remove('ios-fullscreen');
-            }
-            dispararResize360();
-        }
-
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-
-        // Função auxiliar que força o script de rotação 360 a recalcular o novo espaço esticado
-        function dispararResize360() {
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 150);
         }
     });
 </script>
